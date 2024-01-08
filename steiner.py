@@ -116,9 +116,9 @@ class Graph:
         return sum(Graph.distance(candidate, vertex) for vertex in vertices)
     
     def fermat_point(self, vertices, initial_guess):
-        # constraints = ({'type': 'eq', 'fun': lambda x: sum(x) - 1})
+        # constraints = ({'type': 'ineq', 'fun': lambda x: sum(x) - 1})
+        # result = minimize(self.objective_function, initial_guess, args=(vertices,), constraints=constraints, method='COBYLA')
 
-        # result = minimize(self.objective_function, initial_guess, args=(vertices,), constraints=constraints, method='Nelder-Mead')
         result = minimize(self.objective_function, initial_guess, args=(vertices,), method='Nelder-Mead')
 
         return (result.x[0], result.x[1])
@@ -146,7 +146,7 @@ class Graph:
                 self.neighboors[v].append(steiner_point_index)
                 self.neighboors[point].append(steiner_point_index)
         eps = 100
-        while eps > 0.01:
+        while eps > 0.001:
             for key in self.steiner_points:
                 initial_steiner_position = self.vertices[key]
                 vertices = []
@@ -194,7 +194,7 @@ class Graph:
         plt.ylabel('Y-axis')
         plt.show()
 
-def steiner_main(vertices): 
+def steiner_tree(vertices): 
     g = Graph(vertices)
     g.steiner(False, True)
     return g
@@ -243,4 +243,4 @@ if __name__ == '__main__':
     for i in range(10):
         for j in range(10): 
             vertices[len(vertices)] = (i, random.uniform(0, 10.0))
-    steiner_main(vertices)
+    steiner_tree(vertices)

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from steiner import steiner_main
+from steiner import steiner_tree
 import random
 
 class SteinerTreePlotter:
@@ -51,7 +51,7 @@ class SteinerTreePlotter:
         self.plot_vertices()   
         if len(self.vertices) < 3: return
         orig_len = len(self.vertices)
-        g = steiner_main(self.vertices)
+        g = steiner_tree(self.vertices)
         for edge in g.mst_edges:
             v1, v2 = edge
             x1, y1 = self.vertices[v1]
@@ -87,7 +87,7 @@ class SteinerTreePlotter:
         elif number == 4:
             self.vertices = {}
             for _ in range(100): 
-                self.vertices[len(self.vertices)] = (random.uniform(0, 20.0), random.uniform(0, 20.0))
+                self.vertices[len(self.vertices)] = (random.uniform(0, 100.0), random.uniform(0, 100.0))
         self.plot_vertices()            
 
 def on_close(root):

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from steiner import steiner_tree
 import random
+import math
 
 class SteinerTreePlotter:
     def __init__(self, entry_x, entry_y, canvas) -> None:
@@ -49,9 +50,20 @@ class SteinerTreePlotter:
         plt.title('Vertex Plot')
         self.canvas.draw()
         self.plot_vertices()   
-        if len(self.vertices) < 3: return
+        if len(self.vertices) < 2: return
+        if len(self.vertices) == 2: 
+            x1, y1 = self.vertices[0]
+            x2, y2 = self.vertices[1]
+            distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            plt.gcf().text(0.02, 0.98, f'Total length: {distance:.2f}', fontsize=10,
+            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            plt.plot([x1, x2], [y1, y2], linestyle='-', color='red')
+            self.canvas.draw()
+            return
         orig_len = len(self.vertices)
         g = steiner_tree(self.vertices)
+        plt.gcf().text(0.02, 0.98, f'Total length: {g.total_length:.2f}', fontsize=10,
+            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         for edge in g.mst_edges:
             v1, v2 = edge
             x1, y1 = self.vertices[v1]
@@ -76,8 +88,8 @@ class SteinerTreePlotter:
             self.vertices = {
                 0: (0,0), 
                 1: (0,1), 
-                2: (1.3,1), 
-                3: (1.3,0)
+                2: (1,1), 
+                3: (1,0)
             }
         elif number == 3:
             self.vertices = {}

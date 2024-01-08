@@ -139,6 +139,7 @@ def Draw(width, height, targets_a, targets_b, helicopters, solution_a, solution_
 BEST_ROUTES = {}
 
 def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score, worst_score, g_temperature):
+    # find best routes for given targets
     targets_touple = ()
     sorted_touples = sorted(targets_a, key=lambda x: x[0])
     for touple in sorted_touples: 

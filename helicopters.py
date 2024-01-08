@@ -1,20 +1,23 @@
-import numpy
+import numpy as np
 import cv2
 
 def Generate(width, height, count):
+    # method to generate random targets
     targets = []
     for i in range(count):
-        position_x = numpy.random.randint(width)
-        position_y = numpy.random.randint(height - 400) + 300
+        position_x = np.random.randint(width)
+        position_y = np.random.randint(height - 165) + 160
         targets.append((position_x, position_y))
     return targets
 
 def Initialize(count):
-    solution = numpy.arange(count)
-    numpy.random.shuffle(solution)
+    # shuffle initial solution
+    solution = np.arange(count)
+    np.random.shuffle(solution)
     return solution
 
 def Evaluate(targets, solution):
+    # fitness function - sum of all distances
     distance = 0
     for i in range(len(targets)):
         index_a = solution[i]
@@ -24,78 +27,66 @@ def Evaluate(targets, solution):
     return distance
 
 def get_distance(target1, target2):
+    # distance of two points
     delta_x = target1[0] - target2[0]
     delta_y = target1[1] - target2[1]
     return (delta_x ** 2 + delta_y ** 2) ** 0.5
 
 def Modify(current):
+    # randomly swap two positions in current solution 
     new = current.copy()
     if len(new) == 1: 
         return new 
-    index_a = numpy.random.randint(len(current))
-    index_b = numpy.random.randint(len(current))
+    index_a = np.random.randint(len(current))
+    index_b = np.random.randint(len(current))
     while index_b == index_a:
-        index_b = numpy.random.randint(len(current))
+        index_b = np.random.randint(len(current))
     new[index_a], new[index_b] = new[index_b], new[index_a]
     return new
 
 def ModifyTargets(targets_a, targets_b, helicopters): 
+    # randomly assign one target to different helicopter 
     new_a = targets_a.copy()
     new_b = targets_b.copy()
-    random_number = numpy.random.uniform()
+    random_number = np.random.uniform()
     if (random_number >= 0.5 and len(new_a) > 0) or (random_number < 0.5 and len(new_b) == 0):
         distances = [get_distance(target, helicopters[1]) for target in new_a]
-        distances = numpy.array(distances)
+        distances = np.array(distances)
         probabilities = 1 / distances**2
-        probabilities /= numpy.sum(probabilities)
-        index_a = numpy.random.choice(len(new_a), p=probabilities)
+        probabilities /= np.sum(probabilities)
+        index_a = np.random.choice(len(new_a), p=probabilities)
         item = new_a.pop(index_a)
         new_b.append(item)
     else: 
         distances = [get_distance(target, helicopters[0]) for target in new_b]
-        distances = numpy.array(distances)
+        distances = np.array(distances)
         probabilities = 1 / distances
-        probabilities /= numpy.sum(probabilities)
-        index_b = numpy.random.choice(len(new_b), p=probabilities)
+        probabilities /= np.sum(probabilities)
+        index_b = np.random.choice(len(new_b), p=probabilities)
         item = new_b.pop(index_b)
         new_a.append(item)          
 
     return new_a, new_b
 
-# def ModifyTargets(targets_a, targets_b, helicopters): 
-#     new_a = targets_a.copy()
-#     new_b = targets_b.copy()
-#     random_number = numpy.random.uniform()
-#     if (random_number >= 0.5 and len(new_a) > 0) or (random_number < 0.5 and len(new_b) == 0):
-#         array = targets_b.copy()
-#         array.append(helicopters[1])
-#         index_a, _ = find_closest_points(new_a, array)
-#         item = new_a.pop(index_a)
-#         new_b.append(item)
-#     else: 
-#         array = targets_a.copy()
-#         array.append(helicopters[0])
-#         _, index_b = find_closest_points(array, new_b)
-#         item = new_b.pop(index_b)
-#         new_a.append(item)        
+def DrawPoints(width, height, targets_a, targets_b, helicopters):
+    # draw innitial targets and helicopters
+    frame = np.zeros((height, width, 3))
+    cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), WHITE, -1)
+    cv2.putText(frame, "RUN", (button_x + 10, button_y + 30), FONT, SIZE, GREEN)
+    for target in targets_a:
+        cv2.circle(frame, (target[0], target[1]), 5, YELLOW, -1)
+        
+    for target in targets_b:
+        cv2.circle(frame, (target[0], target[1]), 5, PINK, -1)
 
-#     return new_a, new_b
-
-def find_closest_points(list1, list2):
-    index1 = 0
-    index2 = 0
-    min_distance = float('inf')
-    for id1, point1 in enumerate(list1):
-        for id2, point2 in enumerate(list2):
-            distance = get_distance(point1, point2)
-            if distance < min_distance:
-                index1 = id1
-                index2 = id2
-
-    return index1, index2
+    cv2.circle(frame, (helicopters[0][0], helicopters[0][1]), 5, BLUE, -1)
+    if len(helicopters) ==2:
+        cv2.circle(frame, (helicopters[1][0], helicopters[1][1]), 5, RED, -1)
+    cv2.imshow("Simulated Annealing", frame)    
 
 def Draw(width, height, targets_a, targets_b, helicopters, solution_a, solution_b, infos):
-    frame = numpy.zeros((height, width, 3))
+    # draw simulation
+    frame = np.zeros((height, width, 3))
     for i in range(len(targets_a)):
         index_a = solution_a[i]
         index_b = solution_a[i - 1]
@@ -152,6 +143,7 @@ def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score,
     sorted_touples = sorted(targets_a, key=lambda x: x[0])
     for touple in sorted_touples: 
         targets_touple += touple
+    # check for routes that has already been optimized    
     if targets_touple in BEST_ROUTES:
         best_score_ab, trg_a, trg_b = BEST_ROUTES[targets_touple]
         current_solution_a = [targets_a.index(target) for target in trg_a]
@@ -159,6 +151,7 @@ def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score,
         infos = (INITIAL_TEMPERATURE, 0, 0, 0, 0, 0, 0, g_temperature, current_score, best_score, worst_score)
         Draw(WIDTH, HEIGHT, targets_a, targets_b, helicopters, current_solution_a, current_solution_b, infos)
         return (best_score_ab, current_solution_a, current_solution_b)
+    
     current_solution_a = Initialize(len(targets_a))
     current_score_a = Evaluate(targets_a, current_solution_a)
     best_score_a = worst_score_a = current_score_a
@@ -178,8 +171,8 @@ def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score,
             current_score_a = new_score_a
         else:
             delta = new_score_a - current_score_a
-            probability = numpy.exp(-delta / temperature)
-            if probability > numpy.random.uniform():
+            probability = np.exp(-delta / temperature)
+            if probability > np.random.uniform():
                 current_solution_a = new_solution_a
                 current_score_a = new_score_a
 
@@ -192,8 +185,8 @@ def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score,
             current_score_b = new_score_b
         else:
             delta = new_score_b - current_score_b
-            probability = numpy.exp(-delta / temperature)
-            if probability > numpy.random.uniform():
+            probability = np.exp(-delta / temperature)
+            if probability > np.random.uniform():
                 current_solution_b = new_solution_b
                 current_score_b = new_score_b
 
@@ -210,7 +203,7 @@ INITIAL_TEMPERATURE = 300
 GENERAL_TEMPERATURE = 1000
 STOPPING_TEMPERATURE = 1
 TEMPERATURE_DECAY = 0.95
-GENERAL_TEMPERATURE_DECAY = 0.9
+GENERAL_TEMPERATURE_DECAY = 0.95
 FONT = cv2.FONT_HERSHEY_DUPLEX
 SIZE = 0.7
 WHITE = (255, 255, 255)
@@ -223,33 +216,73 @@ PINK = (100, 0, 255)
 # BLUE helicopter - YELLOW targets - GREEN routes
 # RED helicopter - PINK targets - WHITE routes
 
+def on_mouse_click(event, x, y, flags, param):
+    global button_clicked
+    if not button_clicked and event == cv2.EVENT_LBUTTONDOWN:
+        if button_x < x < button_x + button_width and button_y < y < button_y + button_height and len(helicopters) == 2 and len(targets_a_general) + len(targets_b_general) > 0:
+            button_clicked = not button_clicked
+            print("Button clicked!")
+        elif 160 < y < HEIGHT - 5:
+            if len(helicopters) < 2:
+                helicopters.append((x,y))
+            elif (x,y) not in targets_a_general and (x,y) not in targets_b_general:
+                if get_distance((x,y), helicopters[0]) < get_distance((x,y), helicopters[1]):
+                    targets_a_general.append((x,y))
+                else:
+                    targets_b_general.append((x,y))  
+        
 if __name__ == "__main__":
+    cv2.namedWindow("Simulated Annealing")
+    cv2.setMouseCallback("Simulated Annealing", on_mouse_click)
+    button_x, button_y, button_width, button_height = WIDTH-110, 50, 100, 40
+
+    frame = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
+    # custom targets and helicopters
+    targets_a_general = []
+    targets_b_general = []
+    helicopters = []
+    button_clicked = False
+    while True:
+        cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), WHITE, -1)
+        cv2.putText(frame, "RUN", (button_x + 10, button_y + 30), FONT, SIZE, GREEN)
+
+        cv2.imshow("Simulated Annealing", frame)
+        if len(helicopters) > 0:
+            DrawPoints(WIDTH, HEIGHT, targets_a_general, targets_b_general, helicopters)   
+        if cv2.waitKey(5) and button_clicked:
+            break
+
+
     # fixed targets
-    all_targets = [
-        (160, 390), (170, 410), (200, 500), (250, 382), (388, 400), (410, 440), (255, 387), (246, 399), 
-        (188, 312), (417, 255), (562, 365), (650, 480), (413, 340), (700, 340)
-    ]
+    # all_targets = [
+    #     (160, 390), (170, 410), (200, 500), (250, 382), (388, 400), (410, 440), (255, 387), (246, 399), 
+    #     (188, 312), (417, 255), (562, 365), (650, 480), (413, 340), (700, 340)
+    # ]
+
     # random targets
     # targets_a_general = Generate(WIDTH, HEIGHT, TARGET_COUNT)
     # targets_b_general = Generate(WIDTH, HEIGHT, TARGET_COUNT)
+
+    # random targets
+    # all_targets = Generate(WIDTH, HEIGHT, 2*TARGET_COUNT)
 
     # randomly placed helicopters
     # helicopters = Generate(WIDTH, HEIGHT, 2)
 
     # fixed placement of helicopters
-    helicopters = [(110, 440), (730, 440)]
+    # helicopters = [(110, 440), (730, 440)]
 
     # closest targets to each helicopter
     # all_targets = Generate(WIDTH, HEIGHT, 2*TARGET_COUNT)
-    targets_a_general = []
-    targets_b_general = []
-    for target in all_targets:
-        if get_distance(target, helicopters[0]) < get_distance(target, helicopters[1]):
-            targets_a_general.append(target)
-            continue
-        targets_b_general.append(target)
+    # targets_a_general = []
+    # targets_b_general = []
+    # for target in all_targets:
+    #     if get_distance(target, helicopters[0]) < get_distance(target, helicopters[1]):
+    #         targets_a_general.append(target)
+    #         continue
+    #     targets_b_general.append(target)
     
-    current_score = numpy.inf
+    current_score = np.inf
     best_score = worst_score = current_score
     
     g_temperature = GENERAL_TEMPERATURE
@@ -258,8 +291,13 @@ if __name__ == "__main__":
     best_targets_b = []
     best_solution_a = []
     best_solution_b = []
+    first_iteration = True
     while(g_temperature > STOPPING_TEMPERATURE):
-        targets_a, targets_b = ModifyTargets(targets_a_general, targets_b_general, helicopters)
+        if first_iteration:
+            targets_a, targets_b = targets_a_general, targets_b_general
+            first_iteration = False
+        else:    
+            targets_a, targets_b = ModifyTargets(targets_a_general, targets_b_general, helicopters)
         targets_a.append(helicopters[0])
         targets_b.append(helicopters[1])
 
@@ -270,7 +308,7 @@ if __name__ == "__main__":
             best_targets_b = targets_b
             best_solution_a = new_solution_a
             best_solution_b = new_solution_b
-        if worst_score == numpy.inf:
+        if worst_score == np.inf:
             worst_score = new_score
         worst_score = max(worst_score, new_score)
         if new_score < current_score:
@@ -281,17 +319,17 @@ if __name__ == "__main__":
             current_score = new_score
         else:
             delta = new_score - current_score
-            probability = numpy.exp(-delta / g_temperature)
-            if probability > numpy.random.uniform():
+            probability = np.exp(-delta / g_temperature)
+            if probability > np.random.uniform():
                 targets_a_general = targets_a[:-1]
                 targets_b_general = targets_b[:-1]
                 current_solution_a = new_solution_a
                 current_solution_b = new_solution_b
                 current_score = new_score
         g_temperature *= GENERAL_TEMPERATURE_DECAY
-    TEMPERATURE_DECAY = 0.999
+    TEMPERATURE_DECAY = 0.992
+    BEST_ROUTES = {}
     best_score, best_solution_a, best_solution_b = FindBestRoutes(best_targets_a, best_targets_b, helicopters, best_score, best_score, worst_score, g_temperature)    
     infos = (0, 0, 0, 0, 0, 0, 0, g_temperature, 0, best_score, worst_score)    
     Draw(WIDTH, HEIGHT, best_targets_a, best_targets_b, helicopters, best_solution_a, best_solution_b, infos)    
     cv2.waitKey(0)
-    # try adding vertices by click

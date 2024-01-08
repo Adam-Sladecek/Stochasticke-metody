@@ -68,7 +68,7 @@ def ModifyTargets(targets_a, targets_b, helicopters):
 
     return new_a, new_b
 
-def DrawPoints(width, height, targets_a, targets_b, helicopters):
+def DrawPoints(width, height, targets_a, targets_b, helicopters, button_x, button_y, button_height, button_width):
     # draw innitial targets and helicopters
     frame = np.zeros((height, width, 3))
     cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), WHITE, -1)
@@ -136,8 +136,6 @@ def Draw(width, height, targets_a, targets_b, helicopters, solution_a, solution_
     cv2.imshow("Simulated Annealing", frame)
     cv2.waitKey(5)
 
-BEST_ROUTES = {}
-
 def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score, worst_score, g_temperature):
     # find best routes for given targets
     targets_touple = ()
@@ -197,6 +195,7 @@ def FindBestRoutes(targets_a, targets_b, helicopters, current_score, best_score,
     BEST_ROUTES[targets_touple] = (best_score_a + best_score_b, [targets_a[i] for i in current_solution_a], [targets_b[i] for i in current_solution_b])   
     return (best_score_a + best_score_b, current_solution_a, current_solution_b)    
 
+BEST_ROUTES = {}
 WIDTH = 840
 HEIGHT = 680
 TARGET_COUNT = 10
@@ -213,15 +212,16 @@ RED = (0, 0, 255)
 YELLOW = (0, 100, 255)
 BLUE = (255, 0, 0)
 PINK = (100, 0, 255)
+BUTTON_CLICKED = False
 
 # BLUE helicopter - YELLOW targets - GREEN routes
 # RED helicopter - PINK targets - WHITE routes
 
-def on_mouse_click(event, x, y, flags, param):
-    global button_clicked
-    if not button_clicked and event == cv2.EVENT_LBUTTONDOWN:
+def on_mouse_click(event, x, y, flags, param, button_x, button_y, button_height, button_width, helicopters, targets_a_general, targets_b_general):
+    global BUTTON_CLICKED
+    if not BUTTON_CLICKED and event == cv2.EVENT_LBUTTONDOWN:
         if button_x < x < button_x + button_width and button_y < y < button_y + button_height and len(helicopters) == 2 and len(targets_a_general) + len(targets_b_general) > 0:
-            button_clicked = not button_clicked
+            BUTTON_CLICKED = not BUTTON_CLICKED
             print("Button clicked!")
         elif 160 < y < HEIGHT - 5:
             if len(helicopters) < 2:
@@ -231,26 +231,26 @@ def on_mouse_click(event, x, y, flags, param):
                     targets_a_general.append((x,y))
                 else:
                     targets_b_general.append((x,y))  
-        
-if __name__ == "__main__":
+
+def main():
     cv2.namedWindow("Simulated Annealing")
-    cv2.setMouseCallback("Simulated Annealing", on_mouse_click)
     button_x, button_y, button_width, button_height = WIDTH-110, 50, 100, 40
+    cv2.setMouseCallback("Simulated Annealing", lambda event, x, y, flags, param: on_mouse_click(event, x, y, flags, param, button_x, button_y, button_height, button_width, helicopters, targets_a_general, targets_b_general))
 
     frame = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
     # custom targets and helicopters
     targets_a_general = []
     targets_b_general = []
     helicopters = []
-    button_clicked = False
+    
     while True:
         cv2.rectangle(frame, (button_x, button_y), (button_x + button_width, button_y + button_height), WHITE, -1)
         cv2.putText(frame, "RUN", (button_x + 10, button_y + 30), FONT, SIZE, GREEN)
 
         cv2.imshow("Simulated Annealing", frame)
         if len(helicopters) > 0:
-            DrawPoints(WIDTH, HEIGHT, targets_a_general, targets_b_general, helicopters)   
-        if cv2.waitKey(5) and button_clicked:
+            DrawPoints(WIDTH, HEIGHT, targets_a_general, targets_b_general, helicopters, button_x, button_y, button_height, button_width)   
+        if cv2.waitKey(5) and BUTTON_CLICKED:
             break
 
 
@@ -315,8 +315,6 @@ if __name__ == "__main__":
         if new_score < current_score:
             targets_a_general = targets_a[:-1]
             targets_b_general = targets_b[:-1]
-            current_solution_a = new_solution_a
-            current_solution_b = new_solution_b
             current_score = new_score
         else:
             delta = new_score - current_score
@@ -324,13 +322,16 @@ if __name__ == "__main__":
             if probability > np.random.uniform():
                 targets_a_general = targets_a[:-1]
                 targets_b_general = targets_b[:-1]
-                current_solution_a = new_solution_a
-                current_solution_b = new_solution_b
                 current_score = new_score
         g_temperature *= GENERAL_TEMPERATURE_DECAY
+
+    global TEMPERATURE_DECAY, BEST_ROUTES
     TEMPERATURE_DECAY = 0.992
     BEST_ROUTES = {}
     best_score, best_solution_a, best_solution_b = FindBestRoutes(best_targets_a, best_targets_b, helicopters, best_score, best_score, worst_score, g_temperature)    
     infos = (0, 0, 0, 0, 0, 0, 0, g_temperature, 0, best_score, worst_score)    
     Draw(WIDTH, HEIGHT, best_targets_a, best_targets_b, helicopters, best_solution_a, best_solution_b, infos)    
-    cv2.waitKey(0)
+    cv2.waitKey(0) 
+
+if __name__ == "__main__":
+    main()
